@@ -1,18 +1,6 @@
-# from urllib.parse import urlencode
 import requests
 import time
 from pprint import pprint
-
-# APP_ID = 7064612
-# AUTH_URL = 'https://oauth.vk.com/authorize'
-# AUTH_DATA = {
-#     "client_id": APP_ID,
-#     "display":'page',
-#     "scope":'friends',
-#     "response_type":'token'
-# }
-# print('?'.join((AUTH_URL, urlencode(AUTH_DATA))))
-
 TOKEN = '73eaea320bdc0d3299faa475c196cfea1c4df9da4c6d291633f9fe8f83c08c4de2a3abf89fbc3ed8a44e1'
 ID_eshmargunov = '171691064'
 
@@ -39,21 +27,7 @@ class VK_user:
             params=params
         )
         print('.')
-        #time.sleep(1)
         return(response)
-
-    def get_banned(self):
-        response = self.request('account.getBanned',
-                                params={
-                                    'access_token':self.token,
-                                    'v':'5.52',
-                                    'user_id':self.ID,
-                                    'count': 200})
-        dict_of_banned = response.json()['response']['items']
-        list_of_banned = []
-        for banned in dict_of_banned:
-            list_of_banned.append(banned['id'])
-        return(list_of_banned)
 
     def get_groups(self):
         response = self.request('groups.get',
@@ -76,35 +50,41 @@ class VK_user:
             list_of_friends.append(friend['id'])
         return (list_of_friends)
 
-eshmargunov = VK_user(TOKEN, ID_eshmargunov)
-list_of_groups_ID=[]
-for i in eshmargunov.get_groups():
-    list_of_groups_ID.append(i['id']) #формируется список ID групп Евгения Шмаргунова
-    set_of_groups_ID=set(list_of_groups_ID) #формируется множество для дальнейшего сравнения с мнодествами групп друзей Евгения
-print(set_of_groups_ID)
+def set_of_user_group_id(token, id):
+    user = VK_user(token,id)
+    list_of_groups_ID = []
+    for group in user.get_groups():
+        list_of_groups_ID.append(group['id'])
+        set_of_groups_ID=set(list_of_groups_ID)
+    return (set_of_groups_ID)
 
-list_of_friends=[]
-list_of_groups=[]
-list_of_friends_groups_ID=[]
-# # set_of_friend_group_ID=()
-# #
-for friend_id in eshmargunov.get_friends():
-    list_of_friends.append(VK_user(TOKEN, friend_id))
-for friend in list_of_friends:
-    try:
-        list_of_groups.append(friend.get_groups())
-    except:
-        continue
-for groups in list_of_groups:
-    for group in groups:
+def set_of_friends_group_id(token,id):
+    user = VK_user(token, id)
+    list_of_friends=[]
+    list_of_groups=[]
+    list_of_friends_groups_ID=[]
+
+    for friend_id in user.get_friends():
+        list_of_friends.append(VK_user(token, friend_id))
+    for friend in list_of_friends:
         try:
-            list_of_friends_groups_ID.append(group['id'])
+            list_of_groups.append(friend.get_groups())
         except:
             continue
+    for groups in list_of_groups:
+        for group in groups:
+            try:
+                list_of_friends_groups_ID.append(group['id'])
+            except:
+                continue
+    set_of_friend_group_ID=set(list_of_friends_groups_ID)
+    return (set_of_friend_group_ID)
 
-set_of_friend_group_ID=set(list_of_friends_groups_ID)
-list_of_result=[]
-for i in eshmargunov.get_groups():
-    if i['id'] in (set_of_groups_ID-set_of_friend_group_ID):
-        list_of_result.append(i)
-pprint(list_of_result)
+if __name__ == '__main__':
+    list_of_result=[]
+    eshmargunov = VK_user(TOKEN,ID_eshmargunov)
+    set_of_result = set_of_user_group_id(TOKEN,ID_eshmargunov) - set_of_friends_group_id(TOKEN,ID_eshmargunov)
+    for group in eshmargunov.get_groups():
+        if group['id'] in set_of_result:
+            list_of_result.append(group)
+    pprint(list_of_result)
